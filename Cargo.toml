@@ -2,13 +2,13 @@
 name = "crossbeam-channel-select"
 version = "0.1.0"
 authors = ["Michael Chesser"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-quote = "0.6.11"
-syn = { version = "0.15.26", features = ["full"] }
-proc-macro2 = "0.4.27"
-crossbeam-channel = "0.3.8"
+quote = "1.0.21"
+syn = { version = "1.0.100", features = ["full"] }
+proc-macro2 = "1.0.43"
+crossbeam-channel = "0.5.6"

@@ -40,7 +40,7 @@ fn parse_send_params(input: &ParseStream) -> Result<(Expr, Expr)> {
     let content;
     let _ = parenthesized!(content in input);
     let mut params: Punctuated<Expr, Token![,]> = content.parse_terminated(Expr::parse)?;
-    
+
     // TODO: Better error reporting, the span could point to a more specific location
     let sender = params
         .pop()
@@ -86,7 +86,7 @@ fn parse_selection(input: &ParseStream) -> Result<SelectType> {
     let lookahead = input.lookahead1();
     if lookahead.peek(kw::recv) {
         input.parse::<kw::recv>()?;
-        
+
         let receiver = parse_recv_params(input)?;
         let (result, body) = parse_result(input)?;
 
@@ -102,7 +102,7 @@ fn parse_selection(input: &ParseStream) -> Result<SelectType> {
     }
     else if lookahead.peek(kw::send) {
         input.parse::<kw::send>()?;
-        
+
         let (sender, message) = parse_send_params(input)?;
         let (result, body) = parse_result(input)?;
 
@@ -138,7 +138,7 @@ impl Parse for DynamicSelect {
                 input.parse::<Token![,]>()?;
             }
         }
-        
+
         Ok(DynamicSelect { selections })
     }
 }
@@ -172,19 +172,19 @@ pub fn dynamic_select(input: TokenStream) -> TokenStream {
 
                 selections.push(quote! {
                     let #id = __sel_count;
-
-                    for r in #receiver.iter() {
+                    let __receivers = #receiver;
+                    for r in __receivers.iter() {
                         __sel.recv(r);
                         __sel_count += 1;
                     }
 
                     let #id_end = __sel_count;
                 });
-                
+
                 matches.push(quote! {
                     __i if __i >= #id && __i < #id_end => {
                         let #index = __i - #id;
-                        let #result = __op.recv(#receiver.iter().nth(#index).unwrap());
+                        let #result = __op.recv(__receivers.iter().nth(#index).unwrap());
                         #body
                     }
                 });
@@ -207,26 +207,26 @@ pub fn dynamic_select(input: TokenStream) -> TokenStream {
 
                 selections.push(quote! {
                     let #id = __sel_count;
-
-                    for s in #sender.iter() {
+                    let __senders = #sender;
+                    for s in __senders.iter() {
                         __sel.send(s);
                         __sel_count += 1;
                     }
 
                     let #id_end = __sel_count;
                 });
-                
+
                 matches.push(quote! {
                     __i if __i >= #id && __i < #id_end => {
                         let #index = __i - #id;
-                        let #result = __op.send(#sender.iter().nth(#index).unwrap(), #message);
+                        let #result = __op.send(__senders.iter().nth(#index).unwrap(), #message);
                         #body
                     }
                 });
             },
         }
     }
-    
+
     let expanded = quote! {
         let mut __sel = crossbeam_channel::Select::new();
         let mut __sel_count = 0;
@@ -239,6 +239,6 @@ pub fn dynamic_select(input: TokenStream) -> TokenStream {
             _ => unreachable!(),
         }
     };
-    
+
     TokenStream::from(expanded)
 }
